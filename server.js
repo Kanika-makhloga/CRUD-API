@@ -1,12 +1,29 @@
 const express = require("express");
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsdoc = require("swagger-jsdoc");
 
 const app = express();
-
 const PORT = 3000;
 
 app.use(express.json());
 
-// In-memory tasks list
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Task API",
+      version: "1.0.0",
+      description: "CRUD API for managing tasks"
+    }
+  },
+  apis: ["./server.js"]
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+
 let tasks = [
   {
     id: 1,
@@ -25,52 +42,119 @@ let tasks = [
   }
 ];
 
-// Root endpoint
+
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: API information
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 app.get("/", (req, res) => {
   res.json({
     name: "Task API",
     version: "1.0",
-    endpoints: ["/tasks"]
+    endpoints: [
+      "/tasks",
+      "/docs"
+    ]
   });
 });
 
-// Health endpoint
+
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Check API health
+ *     responses:
+ *       200:
+ *         description: Server running
+ */
 app.get("/health", (req, res) => {
   res.json({
     status: "ok"
   });
 });
 
-// GET all tasks
+
+/**
+ * @swagger
+ * /tasks:
+ *   get:
+ *     summary: Get all tasks
+ *     responses:
+ *       200:
+ *         description: List of tasks
+ */
 app.get("/tasks", (req, res) => {
   res.json(tasks);
 });
 
-// GET single task by id
+
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   get:
+ *     summary: Get task by id
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Task found
+ *       404:
+ *         description: Task not found
+ */
 app.get("/tasks/:id", (req, res) => {
+
   const id = Number(req.params.id);
 
-  const task = tasks.find(task => task.id === id);
+  const task = tasks.find(t => t.id === id);
 
   if (!task) {
     return res.status(404).json({
-      error: `Task ${id} not found`
+      error: "Task not found"
     });
   }
 
   res.json(task);
 });
 
-// POST create new task
-app.post("/tasks", (req, res) => {
-  const { title } = req.body;
 
-  // Validation
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Create new task
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Task created
+ */
+app.post("/tasks", (req, res) => {
+
+  const { title } = req.body || {};
+
   if (!title || title.trim() === "") {
     return res.status(400).json({
       error: "Title is required"
     });
   }
+
 
   const newTask = {
     id: tasks.length + 1,
@@ -78,63 +162,113 @@ app.post("/tasks", (req, res) => {
     done: false
   };
 
+
   tasks.push(newTask);
 
   res.status(201).json(newTask);
+
 });
 
-// PUT update task
+
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   put:
+ *     summary: Update task
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: "Learn Express"
+ *               done:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Task updated
+ *       404:
+ *         description: Task not found
+ */
 app.put("/tasks/:id", (req, res) => {
+
   const id = Number(req.params.id);
 
-  const task = tasks.find(task => task.id === id);
+  const task = tasks.find(t => t.id === id);
+
 
   if (!task) {
     return res.status(404).json({
-      error: `Task ${id} not found`
+      error: "Task not found"
     });
   }
 
-  const { title, done } = req.body;
 
-  // Validation
-  if (
-    (title !== undefined && title.trim() === "") ||
-    (done !== undefined && typeof done !== "boolean")
-  ) {
-    return res.status(400).json({
-      error: "Invalid task data"
-    });
-  }
+  const { title, done } = req.body || {};
+
 
   if (title !== undefined) {
     task.title = title;
   }
 
+
   if (done !== undefined) {
     task.done = done;
   }
 
+
   res.json(task);
+
 });
 
 
-// DELETE task
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   delete:
+ *     summary: Delete task
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       204:
+ *         description: Deleted successfully
+ */
 app.delete("/tasks/:id", (req, res) => {
+
   const id = Number(req.params.id);
 
-  const taskIndex = tasks.findIndex(task => task.id === id);
 
-  if (taskIndex === -1) {
+  const index = tasks.findIndex(t => t.id === id);
+
+
+  if (index === -1) {
     return res.status(404).json({
-      error: `Task ${id} not found`
+      error: "Task not found"
     });
   }
 
-  tasks.splice(taskIndex, 1);
+
+  tasks.splice(index, 1);
+
 
   res.status(204).send();
+
 });
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
