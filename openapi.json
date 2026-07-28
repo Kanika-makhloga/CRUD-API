@@ -1,0 +1,108 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Task API",
+    "version": "1.0.0",
+    "description": "Simple CRUD API using Express"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000"
+    }
+  ],
+  "paths": {
+    "/tasks": {
+      "get": {
+        "summary": "Get all tasks",
+        "responses": {
+          "200": {
+            "description": "List of tasks"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created"
+          }
+        }
+      }
+    },
+
+    "/tasks/{id}": {
+  "get": {
+    "summary": "Get task by ID",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Task found"
+      },
+      "404": {
+        "description": "Task not found"
+      }
+    }
+  },
+  "put": {
+    "summary": "Update task",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "Task updated"
+      }
+    }
+  },
+  "delete": {
+    "summary": "Delete task",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer"
+        }
+      }
+    ],
+    "responses": {
+      "204": {
+        "description": "Task deleted"
+      }
+    }
+  }
+}
+}
+}
