@@ -269,31 +269,53 @@ app.post("/tasks", (req, res) => {
 app.put("/tasks/:id", (req, res) => {
 
   const id = Number(req.params.id);
-
-  const task = tasks.find(t => t.id === id);
-
-
-  if (!task) {
-    return res.status(404).json({
-      error: "Task not found"
-    });
-  }
-
-
   const { title, done } = req.body || {};
 
+  db.get(
+    "SELECT * FROM tasks WHERE id = ?",
+    [id],
+    (err, row) => {
 
-  if (title !== undefined) {
-    task.title = title;
-  }
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
 
+      if (!row) {
+        return res.status(404).json({
+          error: "Task not found"
+        });
+      }
 
-  if (done !== undefined) {
-    task.done = done;
-  }
+      const updatedTitle =
+        title !== undefined ? title : row.title;
 
+      const updatedDone =
+        done !== undefined ? (done ? 1 : 0) : row.done;
 
-  res.json(task);
+      db.run(
+        "UPDATE tasks SET title = ?, done = ? WHERE id = ?",
+        [updatedTitle, updatedDone, id],
+        function (err) {
+
+          if (err) {
+            return res.status(500).json({
+              error: err.message
+            });
+          }
+
+          res.json({
+            id,
+            title: updatedTitle,
+            done: Boolean(updatedDone)
+          });
+
+        }
+      );
+
+    }
+  );
 
 });
 
@@ -317,21 +339,27 @@ app.delete("/tasks/:id", (req, res) => {
 
   const id = Number(req.params.id);
 
+  db.run(
+    "DELETE FROM tasks WHERE id = ?",
+    [id],
+    function (err) {
 
-  const index = tasks.findIndex(t => t.id === id);
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
 
+      if (this.changes === 0) {
+        return res.status(404).json({
+          error: "Task not found"
+        });
+      }
 
-  if (index === -1) {
-    return res.status(404).json({
-      error: "Task not found"
-    });
-  }
+      res.status(204).send();
 
-
-  tasks.splice(index, 1);
-
-
-  res.status(204).send();
+    }
+  );
 
 });
 
