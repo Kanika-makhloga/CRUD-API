@@ -1,9 +1,18 @@
 const express = require("express");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
+const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
 const PORT = 3000;
+
+const db = new sqlite3.Database("./tasks.db", (err) => {
+  if (err) {
+    console.error("Database connection failed:", err.message);
+  } else {
+    console.log("Connected to SQLite database.");
+  }
+});
 
 app.use(express.json());
 
@@ -24,23 +33,37 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
-let tasks = [
-  {
-    id: 1,
-    title: "Learn Node.js",
-    done: false
-  },
-  {
-    id: 2,
-    title: "Build CRUD API",
-    done: false
-  },
-  {
-    id: 3,
-    title: "Complete Assignment",
-    done: true
-  }
-];
+db.serialize(() => {
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      done INTEGER NOT NULL
+    )
+  `);
+
+  db.get("SELECT COUNT(*) AS count FROM tasks", (err, row) => {
+
+    if (row.count === 0) {
+
+      const stmt = db.prepare(
+        "INSERT INTO tasks (title, done) VALUES (?, ?)"
+      );
+
+      stmt.run("Learn Node.js", 0);
+      stmt.run("Build CRUD API", 0);
+      stmt.run("Complete Assignment", 1);
+
+      stmt.finalize();
+
+      console.log("Sample tasks inserted.");
+
+    }
+
+  });
+
+});
 
 
 /**
@@ -90,7 +113,25 @@ app.get("/health", (req, res) => {
  *         description: List of tasks
  */
 app.get("/tasks", (req, res) => {
-  res.json(tasks);
+
+  db.all("SELECT * FROM tasks", [], (err, rows) => {
+
+    if (err) {
+      return res.status(500).json({
+        error: err.message
+      });
+    }
+
+    const tasks = rows.map(task => ({
+      id: task.id,
+      title: task.title,
+      done: Boolean(task.done)
+    }));
+
+    res.json(tasks);
+
+  });
+
 });
 
 
@@ -115,15 +156,32 @@ app.get("/tasks/:id", (req, res) => {
 
   const id = Number(req.params.id);
 
-  const task = tasks.find(t => t.id === id);
+  db.get(
+    "SELECT * FROM tasks WHERE id = ?",
+    [id],
+    (err, row) => {
 
-  if (!task) {
-    return res.status(404).json({
-      error: "Task not found"
-    });
-  }
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
 
-  res.json(task);
+      if (!row) {
+        return res.status(404).json({
+          error: "Task not found"
+        });
+      }
+
+      res.json({
+        id: row.id,
+        title: row.title,
+        done: Boolean(row.done)
+      });
+
+    }
+  );
+
 });
 
 
