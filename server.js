@@ -213,17 +213,25 @@ app.post("/tasks", (req, res) => {
     });
   }
 
+  db.run(
+    "INSERT INTO tasks (title, done) VALUES (?, ?)",
+    [title.trim(), 0],
+    function (err) {
 
-  const newTask = {
-    id: tasks.length + 1,
-    title: title,
-    done: false
-  };
+      if (err) {
+        return res.status(500).json({
+          error: err.message
+        });
+      }
 
+      res.status(201).json({
+        id: this.lastID,
+        title: title.trim(),
+        done: false
+      });
 
-  tasks.push(newTask);
-
-  res.status(201).json(newTask);
+    }
+  );
 
 });
 
