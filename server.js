@@ -27,7 +27,7 @@ const authRoutes = require("./routes/auth");
 
 app.use(express.json());
 
-// Auth routes
+// Authentication routes
 app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
@@ -37,7 +37,13 @@ app.get("/", (req, res) => {
   res.json({
     name: "Task API",
     version: "1.0",
-    endpoints: ["/tasks", "/auth/signup", "/auth/login"]
+    endpoints: [
+      "/tasks",
+      "/auth/signup",
+      "/auth/login",
+      "/public/info",
+      "/protected/profile"
+    ]
   });
 });
 
@@ -48,13 +54,68 @@ app.get("/health", (req, res) => {
   });
 });
 
+// ==========================================
+// STAGE 2 - PUBLIC ROUTE
+// ==========================================
+
+app.get("/public/info", (req, res) => {
+  res.status(200).json({
+    message: "Welcome stranger! This info is public."
+  });
+});
+
+// ==========================================
+// STAGE 2 - PROTECTED ROUTE
+// ==========================================
+
+app.get("/protected/profile", (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  // Check if Authorization header exists
+  if (!authHeader) {
+    return res.status(401).json({
+      error: "Access token required"
+    });
+  }
+
+  // Check if it uses Bearer authentication
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      error: "Access token required"
+    });
+  }
+
+  // Extract token
+  const token = authHeader.split(" ")[1];
+
+  // Check if token exists
+  if (!token) {
+    return res.status(401).json({
+      error: "Access token required"
+    });
+  }
+
+  // Stage 2 only checks that a token was provided.
+  // Actual JWT verification will be added in Stage 3.
+  res.status(200).json({
+    message: "Protected profile accessed",
+    status: "Token received"
+  });
+});
+
+// ==========================================
+// EXISTING CRUD ROUTES
+// ==========================================
+
 // GET all tasks
 app.get("/tasks", async (req, res) => {
   try {
     const tasks = await getAllTasks();
+
     res.json(tasks);
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Failed to fetch tasks"
     });
@@ -77,6 +138,7 @@ app.get("/tasks/:id", async (req, res) => {
     res.json(task);
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Failed to fetch task"
     });
@@ -99,6 +161,7 @@ app.post("/tasks", async (req, res) => {
     res.status(201).json(newTask);
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Failed to create task"
     });
@@ -130,8 +193,11 @@ app.put("/tasks/:id", async (req, res) => {
       });
     }
 
-    const updatedTitle = title !== undefined ? title : task.title;
-    const updatedDone = done !== undefined ? done : task.done;
+    const updatedTitle =
+      title !== undefined ? title : task.title;
+
+    const updatedDone =
+      done !== undefined ? done : task.done;
 
     const updatedTask = await updateTask(
       id,
@@ -142,6 +208,7 @@ app.put("/tasks/:id", async (req, res) => {
     res.json(updatedTask);
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Failed to update task"
     });
@@ -164,20 +231,27 @@ app.delete("/tasks/:id", async (req, res) => {
     res.status(204).send();
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
       error: "Failed to delete task"
     });
   }
 });
 
-// Swagger Docs
+// ==========================================
+// SWAGGER DOCUMENTATION
+// ==========================================
+
 app.use(
   "/docs",
   swaggerUi.serve,
   swaggerUi.setup(swaggerDocument)
 );
 
-// Initialize database first, then start server
+// ==========================================
+// START SERVER
+// ==========================================
+
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
@@ -187,6 +261,10 @@ initializeDatabase()
     });
   })
   .catch((error) => {
-    console.error("Database initialization failed:", error);
+    console.error(
+      "Database initialization failed:",
+      error
+    );
+
     process.exit(1);
   });
