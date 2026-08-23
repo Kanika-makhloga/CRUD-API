@@ -22,7 +22,13 @@ const {
   deleteTask
 } = require("./repositories/taskRepository");
 
+// Auth routes
+const authRoutes = require("./routes/auth");
+
 app.use(express.json());
+
+// Auth routes
+app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
@@ -31,7 +37,7 @@ app.get("/", (req, res) => {
   res.json({
     name: "Task API",
     version: "1.0",
-    endpoints: ["/tasks"]
+    endpoints: ["/tasks", "/auth/signup", "/auth/login"]
   });
 });
 
