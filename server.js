@@ -1,5 +1,12 @@
 require("dotenv").config();
 
+const { createClient } = require("@supabase/supabase-js");
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./openapi.json");
 
@@ -108,7 +115,8 @@ app.put("/tasks/:id", async (req, res) => {
     const { title, done } = req.body;
 
     if (
-      (title !== undefined && (typeof title !== "string" || title.trim() === "")) ||
+      (title !== undefined &&
+        (typeof title !== "string" || title.trim() === "")) ||
       (done !== undefined && typeof done !== "boolean")
     ) {
       return res.status(400).json({
@@ -167,7 +175,9 @@ app.use(
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(
+        `Server running and connected to Supabase on http://localhost:${PORT}`
+      );
     });
   })
   .catch((error) => {
