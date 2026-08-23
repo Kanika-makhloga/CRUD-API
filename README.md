@@ -1,20 +1,28 @@
 # Task CRUD API
 
-A RESTful Task CRUD API built using Node.js, Express, and PostgreSQL.
+A secure RESTful Task API built with Node.js, Express, PostgreSQL, and Supabase Authentication.
 
-The project demonstrates the progression from basic API development to a containerized PostgreSQL-backed application.
+This project demonstrates CRUD operations, user authentication, JWT verification, protected routes, reusable authentication middleware, Swagger documentation, and Dockerized PostgreSQL.
 
 ## Tech Stack
 
 - Node.js
 - Express
 - PostgreSQL
+- Supabase Auth
 - Docker
 - Docker Compose
 - Swagger/OpenAPI
+- Git & GitHub
 
 ## Features
 
+- User signup
+- User login
+- User logout
+- JWT authentication
+- Protected routes
+- Reusable authentication middleware
 - Create tasks
 - Read all tasks
 - Read a task by ID
@@ -22,32 +30,17 @@ The project demonstrates the progression from basic API development to a contain
 - Delete tasks
 - PostgreSQL persistence
 - Parameterized SQL queries
-- Dockerized API
 - Dockerized PostgreSQL
 - Persistent Docker volume
 - Swagger API documentation
 - Health endpoint
+- Public and protected API routes
 
-## API Endpoints
+## Authentication
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/` | API information |
-| GET | `/health` | Health check |
-| GET | `/tasks` | Get all tasks |
-| GET | `/tasks/:id` | Get task by ID |
-| POST | `/tasks` | Create a task |
-| PUT | `/tasks/:id` | Update a task |
-| DELETE | `/tasks/:id` | Delete a task |
-| GET | `/docs` | Swagger documentation |
+Supabase Auth manages users and issues JWT access tokens.
 
-## Run with Docker
+Protected endpoints require:
 
-Make sure Docker Desktop is running.
-
-Create `.env` from `.env.example` and set the required values.
-
-Then run:
-
-```bash
-docker compose up --build
+```text
+Authorization: Bearer <access_token>
