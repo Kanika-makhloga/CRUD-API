@@ -22,18 +22,17 @@ const {
   deleteTask
 } = require("./repositories/taskRepository");
 
-// Auth routes
 const authRoutes = require("./routes/auth");
+const requireAuth = require("./middleware/authMiddleware");
 
 app.use(express.json());
 
-// Authentication routes
 app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
 // ==========================================
-// ROOT ENDPOINT
+// ROOT
 // ==========================================
 
 app.get("/", (req, res) => {
@@ -44,6 +43,7 @@ app.get("/", (req, res) => {
       "/tasks",
       "/auth/signup",
       "/auth/login",
+      "/auth/logout",
       "/public/info",
       "/protected/profile"
     ]
@@ -51,7 +51,7 @@ app.get("/", (req, res) => {
 });
 
 // ==========================================
-// HEALTH ENDPOINT
+// HEALTH
 // ==========================================
 
 app.get("/health", (req, res) => {
@@ -61,7 +61,7 @@ app.get("/health", (req, res) => {
 });
 
 // ==========================================
-// STAGE 2 - PUBLIC ROUTE
+// PUBLIC ROUTE
 // ==========================================
 
 app.get("/public/info", (req, res) => {
@@ -71,56 +71,15 @@ app.get("/public/info", (req, res) => {
 });
 
 // ==========================================
-// STAGE 3 - PROTECTED PROFILE
-// JWT VERIFICATION
+// PROTECTED PROFILE
 // ==========================================
 
-app.get("/protected/profile", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    // Check Authorization header
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        error: "Access token required"
-      });
-    }
-
-    // Extract token
-    const token = authHeader.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({
-        error: "Access token required"
-      });
-    }
-
-    // Verify token with Supabase
-    const {
-      data: { user },
-      error
-    } = await supabase.auth.getUser(token);
-
-    // Invalid or expired token
-    if (error || !user) {
-      return res.status(401).json({
-        error: "Invalid or expired token"
-      });
-    }
-
-    // Valid token
-    res.status(200).json({
-      id: user.id,
-      email: user.email,
-      message: "Protected profile accessed successfully"
-    });
-  } catch (error) {
-    console.error("Token verification error:", error);
-
-    return res.status(401).json({
-      error: "Invalid or expired token"
-    });
-  }
+app.get("/protected/profile", requireAuth, (req, res) => {
+  res.status(200).json({
+    id: req.user.id,
+    email: req.user.email,
+    message: "Protected profile accessed successfully"
+  });
 });
 
 // ==========================================
@@ -259,7 +218,7 @@ app.delete("/tasks/:id", async (req, res) => {
 });
 
 // ==========================================
-// SWAGGER DOCUMENTATION
+// SWAGGER
 // ==========================================
 
 app.use(

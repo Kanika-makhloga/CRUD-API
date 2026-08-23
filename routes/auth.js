@@ -8,12 +8,14 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// POST /auth/signup
+// ==========================================
+// SIGNUP
+// ==========================================
+
 router.post("/signup", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         error: "Email and password are required"
@@ -35,7 +37,7 @@ router.post("/signup", async (req, res) => {
       user: data.user
     });
   } catch (error) {
-    console.error(error);
+    console.error("Signup error:", error);
 
     res.status(500).json({
       error: "Signup failed"
@@ -43,12 +45,14 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// POST /auth/login
+// ==========================================
+// LOGIN
+// ==========================================
+
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         error: "Email and password are required"
@@ -61,7 +65,7 @@ router.post("/login", async (req, res) => {
         password
       });
 
-    if (error) {
+    if (error || !data.session) {
       return res.status(401).json({
         error: "Invalid login credentials"
       });
@@ -72,10 +76,65 @@ router.post("/login", async (req, res) => {
       refresh_token: data.session.refresh_token
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
 
     res.status(500).json({
       error: "Login failed"
+    });
+  }
+});
+
+// ==========================================
+// LOGOUT
+// ==========================================
+
+router.post("/logout", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Access token required"
+      });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        error: "Access token required"
+      });
+    }
+
+    // Verify the token first
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({
+        error: "Invalid or expired token"
+      });
+    }
+
+    // Logout the current Supabase session
+    const { error: logoutError } = await supabase.auth.signOut();
+
+    if (logoutError) {
+      console.error("Logout error:", logoutError);
+
+      return res.status(500).json({
+        error: "Logout failed"
+      });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    res.status(500).json({
+      error: "Logout failed"
     });
   }
 });
