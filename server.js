@@ -32,7 +32,10 @@ app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
-// Root Endpoint
+// ==========================================
+// ROOT ENDPOINT
+// ==========================================
+
 app.get("/", (req, res) => {
   res.json({
     name: "Task API",
@@ -47,7 +50,10 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health Endpoint
+// ==========================================
+// HEALTH ENDPOINT
+// ==========================================
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok"
@@ -65,42 +71,56 @@ app.get("/public/info", (req, res) => {
 });
 
 // ==========================================
-// STAGE 2 - PROTECTED ROUTE
+// STAGE 3 - PROTECTED PROFILE
+// JWT VERIFICATION
 // ==========================================
 
-app.get("/protected/profile", (req, res) => {
-  const authHeader = req.headers.authorization;
+app.get("/protected/profile", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-  // Check if Authorization header exists
-  if (!authHeader) {
+    // Check Authorization header
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Access token required"
+      });
+    }
+
+    // Extract token
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        error: "Access token required"
+      });
+    }
+
+    // Verify token with Supabase
+    const {
+      data: { user },
+      error
+    } = await supabase.auth.getUser(token);
+
+    // Invalid or expired token
+    if (error || !user) {
+      return res.status(401).json({
+        error: "Invalid or expired token"
+      });
+    }
+
+    // Valid token
+    res.status(200).json({
+      id: user.id,
+      email: user.email,
+      message: "Protected profile accessed successfully"
+    });
+  } catch (error) {
+    console.error("Token verification error:", error);
+
     return res.status(401).json({
-      error: "Access token required"
+      error: "Invalid or expired token"
     });
   }
-
-  // Check if it uses Bearer authentication
-  if (!authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({
-      error: "Access token required"
-    });
-  }
-
-  // Extract token
-  const token = authHeader.split(" ")[1];
-
-  // Check if token exists
-  if (!token) {
-    return res.status(401).json({
-      error: "Access token required"
-    });
-  }
-
-  // Stage 2 only checks that a token was provided.
-  // Actual JWT verification will be added in Stage 3.
-  res.status(200).json({
-    message: "Protected profile accessed",
-    status: "Token received"
-  });
 });
 
 // ==========================================
